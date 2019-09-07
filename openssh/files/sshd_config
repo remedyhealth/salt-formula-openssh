@@ -1,41 +1,27 @@
 {%- from "openssh/map.jinja" import server with context %}
 
-# Package generated configuration file
-# See the sshd_config(5) manpage for details
+## MANAGED BY SALT ##
+## DO NOT EDIT ##
+
+Protocol {{ server.get('protocol', 2) }}
 
 {%- if server.binds is defined %}
 {%- for bind in server.binds %}
 ListenAddress {{ bind.address|default("0.0.0.0") }}:{{ bind.port|default("22") }}
 {%- endfor %}
 {%- else %}
-# What ports, IPs and protocols we listen for
 Port {{ server.bind.port }}
-
-# Use these options to restrict which interfaces/protocols sshd will bind to
 ListenAddress {{ server.bind.address }}
 {%- endif %}
 
-Protocol {{ server.get('protocol', 2) }}
-
-# HostKeys for protocol version 2
 HostKey /etc/ssh/ssh_host_rsa_key
 HostKey /etc/ssh/ssh_host_dsa_key
 {%- if grains.os_family != 'CentOS' %}
 HostKey /etc/ssh/ssh_host_ecdsa_key
 {%- endif %}
 
-#Privilege Separation is turned on for security
-UsePrivilegeSeparation yes
-
-# Lifetime and size of ephemeral version 1 server key
-KeyRegenerationInterval 3600
-ServerKeyBits {{ server.get('server_key_bits', '2048') }}
-
-# Logging
 SyslogFacility {{ server.get('syslog_facility', 'AUTH')|upper }}
-
 LogLevel {{ server.get('log_level', 'INFO')|upper }}
-
 LoginGraceTime {{ server.get('login_grace_time', 120) }}
 
 {%- set permit_root_login = server.get('permit_root_login', 'no') %}
@@ -45,11 +31,7 @@ LoginGraceTime {{ server.get('login_grace_time', 120) }}
 {%- set permit_root_login = {True: 'yes', False: 'no'}.get(permit_root_login, 'no') %}
 {%- endif %}
 PermitRootLogin {{ permit_root_login }}
-
 StrictModes yes
-
-RSAAuthentication yes
-
 PubkeyAuthentication {{ 'yes' if server.get('public_key_auth', True) else 'no' }}
 AuthorizedKeysFile     %h/.ssh/authorized_keys
 
@@ -93,50 +75,30 @@ DenyGroups {{ patterns('deny_groups') }}
 AllowGroups {{ patterns('allow_groups') }}
 {% endif %}
 
-IgnoreRhosts {{ 'yes' if server.get('ignore_rhosts', True) else 'no' }}
-
-# For this to work you will also need host keys in /etc/ssh_known_hosts
-RhostsRSAAuthentication no
-# similar for protocol version 2
-
 HostbasedAuthentication {{ 'yes' if server.get('host_auth', False) else 'no' }}
 
-# Uncomment if you don't trust ~/.ssh/known_hosts for RhostsRSAAuthentication
-#IgnoreUserKnownHosts yes
-
-# To enable empty passwords, change to yes (NOT RECOMMENDED)
 PermitEmptyPasswords {{ 'yes' if server.get('permit_empty_passwords', False) else 'no' }}
-
 PermitUserEnvironment {{ 'yes' if server.get('permit_user_environment', False) else 'no' }}
 
-# Change to yes to enable challenge-response passwords (beware issues with
-# some PAM modules and threads)
 {%- if server.challenge_response_auth or server.challenge_response_auth == 'yes' %}
 ChallengeResponseAuthentication yes
 {%- else %}
 ChallengeResponseAuthentication no
 {%- endif %}
 
-# Change to no to disable tunnelled clear text passwords
 PasswordAuthentication {{ 'yes' if server.get('password_auth', True) else 'no' }}
 
-# Kerberos options
 {%- if server.get('kerberos_auth', False) %}
 KerberosAuthentication yes
 {%- else %}
 KerberosAuthentication no
 {%- endif %}
-#KerberosGetAFSToken no
-#KerberosOrLocalPasswd yes
-#KerberosTicketCleanup yes
 
-# GSSAPI options
 {%- if server.get('gssapi_auth', False) %}
 GSSAPIAuthentication yes
 {%- else %}
 GSSAPIAuthentication no
 {%- endif %}
-#GSSAPICleanupCredentials yes
 
 {%- if server.use_dns or server.use_dns == 'yes' %}
 UseDNS yes
@@ -149,7 +111,6 @@ X11DisplayOffset {{ server.get('x11', {}).get('display_offset', '10') }}
 PrintMotd {% if server.get('print_motd', False) %}yes{% else %}no{% endif %}
 PrintLastLog {% if server.get('print_lastlog', True) %}yes{% else %}no{% endif %}
 TCPKeepAlive {{ server.get('alive', {}).get('keep','yes') }}
-#UseLogin no
 
 {%- if server.get('alive', {'interval': None}).interval is number %}
 ClientAliveInterval {{ server.alive.interval }}
@@ -167,7 +128,6 @@ MaxSessions 10
 {%- if server.max_startups is defined %}
 MaxStartups {{ server.max_startups }}
 {%- else %}
-#MaxStartups 10:30:60
 {%- endif %}
 
 {%- if server.max_auth_tries is defined %}
@@ -182,23 +142,12 @@ MaxAuthTries {{ server.max_auth_tries }}
 Banner /etc/issue.net
 {%- endif %}
 
-# Allow client to pass locale environment variables
 AcceptEnv LANG LC_*
 {%- if server.get('accept_env', [])|length > 0 %}
 AcceptEnv {{ server.accept_env|join(' ') }}
 {%- endif %}
 
 Subsystem sftp {{ server.lib_dir }}/sftp-server
-
-# Set this to 'yes' to enable PAM authentication, account processing,
-# and session processing. If this is enabled, PAM authentication will
-# be allowed through the ChallengeResponseAuthentication and
-# PasswordAuthentication.  Depending on your PAM configuration,
-# PAM authentication via ChallengeResponseAuthentication may bypass
-# the setting of "PermitRootLogin without-password".
-# If you just want the PAM account and session checks to run without
-# PAM authentication, then enable this but set PasswordAuthentication
-# and ChallengeResponseAuthentication to 'no'.
 
 UsePAM yes
 
